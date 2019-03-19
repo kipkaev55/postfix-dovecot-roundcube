@@ -1,0 +1,36 @@
+version: "3"
+
+networks:
+  net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.0.1/24
+
+services:
+  mailserver:
+    restart: always
+    build:
+      context: ./postfix
+    container_name: mailserver
+    domainname: ${DOMAINNAME}
+    hostname: ${HOSTNAME}
+    ports:
+      - "25:25"
+      - "${ROUNDCUBE_PORT}:80"
+      - "110:110"
+      - "143:143"
+      - "465:465"
+      - "993:993"
+      - "995:995"
+    env_file:
+      - .env
+    volumes:
+      - ./data/vmail:/var/vmail
+      - ./data/mysql:/var/lib/mysql
+      - ./data/log:/var/log
+      - ./assets/dkim:/etc/opendkim/domainkeys
+      - ./assets/certs:/etc/postfix/certs
+    networks:
+      net:

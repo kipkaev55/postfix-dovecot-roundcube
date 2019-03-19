@@ -1,0 +1,8 @@
+user=mail
+password=mail
+hosts=127.0.0.1
+dbname=mail
+table = domain
+select_field = domain
+where_field = domain
+additional_conditions = and backupmx = '0' and active = '1'

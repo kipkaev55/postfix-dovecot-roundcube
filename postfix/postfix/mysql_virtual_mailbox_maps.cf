@@ -1,0 +1,8 @@
+user=mail
+password=mail
+hosts=127.0.0.1
+dbname=mail
+table = mailbox
+select_field = CONCAT(domain, '/', local_part)
+where_field = username
+additional_conditions = and active = '1'
