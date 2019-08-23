@@ -131,7 +131,7 @@ CREATE TABLE `domain_admins` (
 
 LOCK TABLES `domain_admins` WRITE;
 /*!40000 ALTER TABLE `domain_admins` DISABLE KEYS */;
-INSERT INTO `domain_admins` VALUES ('admin@pntr.io','ALL','2016-03-06 16:10:41',1);
+INSERT INTO `domain_admins` VALUES ('admin@$DOMAINNAME','ALL','2016-03-06 16:10:41',1);
 /*!40000 ALTER TABLE `domain_admins` ENABLE KEYS */;
 UNLOCK TABLES;
 

@@ -184,10 +184,10 @@ $CONF['page_size'] = '10';
 // a) a full mail address
 // b) only a localpart ('postmaster' => 'admin') - the alias target will point to the same domain
 $CONF['default_aliases'] = array (
-    'abuse' => 'abuse@pntr.io',
-    'hostmaster' => 'hostmaster@pntr.io',
-    'postmaster' => 'postmaster@pntr.io',
-    'webmaster' => 'webmaster@pntr.io'
+    'abuse' => 'abuse@$DOMAINNAME',
+    'hostmaster' => 'hostmaster@$DOMAINNAME',
+    'postmaster' => 'postmaster@$DOMAINNAME',
+    'webmaster' => 'webmaster@$DOMAINNAME'
 );
 
 // Mailboxes
@@ -319,7 +319,7 @@ $CONF['vacation'] = 'NO';
 // transport maps to handle virtual vacations. It does not need to be a
 // real domain (i.e. you don't need to setup DNS for it).
 // This domain must exclusively be used for vacation. Do NOT use it for "normal" mail addresses.
-$CONF['vacation_domain'] = 'mail2.pntr.io';
+$CONF['vacation_domain'] = 'mail2.$DOMAINNAME';
 
 // Vacation Control
 // If you want users to take control of vacation set this to 'YES'.
@@ -406,8 +406,8 @@ $CONF['header_text'] = ':: Postfix Admin ::';
 // Below information will be on all pages.
 // If you don't want the footer information to appear set this to 'NO'.
 $CONF['show_footer_text'] = 'YES';
-$CONF['footer_text'] = 'Return to pntr.io';
-$CONF['footer_link'] = 'http://pntr.io';
+$CONF['footer_text'] = 'Return to $DOMAINNAME';
+$CONF['footer_link'] = 'http://$DOMAINNAME';
 
 // MOTD ("Motto of the day")
 // You can display a MOTD below the menu on all pages.

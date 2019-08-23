@@ -10,6 +10,18 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then /usr/bin/mysql_install_db;fi
 if [ ! -d "/var/lib/mysql/mail" ]; 
 then 
     PSSW=`doveadm pw -s MD5-CRYPT -p $ADMIN_PASSWD | sed 's/{MD5-CRYPT}//'`
+    echo "sed -i -- 's/\$HOSTNAME/$HOSTNAME/g' /var/www/html/postfixadmin/config.inc.php"
+    sed -i -- "s/\$HOSTNAME/$HOSTNAME/g" /var/www/html/postfixadmin/config.inc.php
+
+    echo "sed -i -- 's/\$DOMAINNAME/$DOMAINNAME/g' /var/www/html/postfixadmin/config.inc.php"
+    sed -i -- "s/\$DOMAINNAME/$DOMAINNAME/g" /var/www/html/postfixadmin/config.inc.php
+    
+    echo "sed -i -- 's/\$HOSTNAME/$HOSTNAME/g' postfixadmin.sql"
+    sed -i -- "s/\$HOSTNAME/$HOSTNAME/g" postfixadmin.sql
+    
+    echo "sed -i -- 's/\$DOMAINNAME/$DOMAINNAME/g' postfixadmin.sql"
+    sed -i -- "s/\$DOMAINNAME/$DOMAINNAME/g" postfixadmin.sql
+    
     mysql < /postfixadmin.sql;mysql -e "insert into admin values('$ADMIN_USERNAME','$PSSW',1,'2016-03-02 15:23:14','2016-03-03 16:24:44',1);insert into domain_admins values('$ADMIN_USERNAME', 'ALL', NOW(), 1)" mail;
     # TODO make configuration.
     postfixadmin-cli domain add $DOMAINNAME --aliases 0 --mailboxes 0
@@ -24,6 +36,7 @@ if [ -z "$MYHOSTNAME" ]; then
     MYHOSTNAME="$HOSTNAME.$DOMAINNAME"
 fi
 postconf -e myhostname=$MYHOSTNAME
+postconf -e mydestination="$MYHOSTNAME, localhost"
 ############
 # Enable TLS
 ############
@@ -37,7 +50,9 @@ fi
 #############
 #  opendkim
 #############
-
+if [[ -z "$(find /etc/opendkim/domainkeys -iname *.private)" ]]; then
+    opendkim-genkey -D /etc/opendkim/domainkeys/ -d $(hostname -d) -s $(hostname)
+fi
 if [[ ! -z "$(find /etc/opendkim/domainkeys -iname *.private)" ]]; then
     # /etc/postfix/main.cf
     postconf -e milter_protocol=2
@@ -76,7 +91,7 @@ EOF
     cat >> /etc/opendkim/TrustedHosts <<EOF
 127.0.0.1
 localhost
-192.168.0.1/24
+$NETWORK
 
 *.$HOSTNAME.$DOMAINNAME
 EOF
@@ -92,6 +107,12 @@ EOF
     chown opendkim:opendkim $(find /etc/opendkim/domainkeys -iname *.private)
     chmod 400 $(find /etc/opendkim/domainkeys -iname *.private)
 fi
+
+echo "sed -i -- 's/\$HOSTNAME/$HOSTNAME/g' /etc/dovecot/dovecot.conf"
+sed -i -- "s/\$HOSTNAME/$HOSTNAME/g" /etc/dovecot/dovecot.conf
+
+echo "sed -i -- 's/\$DOMAINNAME/$DOMAINNAME/g' /etc/dovecot/dovecot.conf"
+sed -i -- "s/\$DOMAINNAME/$DOMAINNAME/g" /etc/dovecot/dovecot.conf
 
 #############
 #  start

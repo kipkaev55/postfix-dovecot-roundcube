@@ -125,12 +125,12 @@ disable_vrfy_command = yes
 # General host and delivery info
 # ----------------------------------
  
-myhostname = mail.pntr.io
+myhostname = $HOSTNAME.$DOMAINNAME
 myorigin = /etc/hostname
 # Some people see issues when setting mydestination explicitly to the server
 # subdomain, while leaving it empty generally doesn't hurt. So it is left empty here.
 # mydestination = mail.example.com, localhost
-mydestination = mail.pntr.io, localhost
+mydestination = $HOSTNAME.$DOMAINNAME, localhost
 # If you have a separate web server that sends outgoing mail through this
 # mailserver, you may want to add its IP address to the space-delimited list in
 # mynetworks, e.g. as 10.10.10.10/32.
