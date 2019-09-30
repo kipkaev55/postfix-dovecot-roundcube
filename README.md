@@ -23,4 +23,5 @@ Then create /etc/postfix/transport
 noreply@domain.com smtp:[127.0.0.1]
 domain.com relay:[mx.yandex.ru]
 # postmap /etc/postfix/transport
+# postfix reload
 ```
