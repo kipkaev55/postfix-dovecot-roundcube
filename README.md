@@ -12,3 +12,16 @@ cp .env.example .env
 docker-compose build mailserver
 docker-compose up -d mailserver
 ```
+### If you need relay emails from your domain, add this in /etc/postfix/main.cf
+```
+...
+transport_maps = hash:/etc/postfix/transport
+```
+Then create /etc/postfix/transport
+```
+# cat /etc/postfix/transport
+noreply@domain.com smtp:[127.0.0.1]
+domain.com relay:[mx.yandex.ru]
+# postmap /etc/postfix/transport
+# postfix reload
+```
