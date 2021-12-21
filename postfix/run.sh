@@ -114,6 +114,21 @@ sed -i -- "s/\$HOSTNAME/$HOSTNAME/g" /etc/dovecot/dovecot.conf
 echo "sed -i -- 's/\$DOMAINNAME/$DOMAINNAME/g' /etc/dovecot/dovecot.conf"
 sed -i -- "s/\$DOMAINNAME/$DOMAINNAME/g" /etc/dovecot/dovecot.conf
 
+postconf -e transport_maps=hash:/etc/postfix/transport
+postconf -e anvil_status_update_time=7200s
+
+if [ ! -z "$RELAY" ]; then
+    #############
+    #  Fix Other Mail Service conflict due to domain's recipients
+    #############
+    cat >> /etc/postfix/transport <<EOF
+$DOMAINNAME relay:[$RELAY]
+EOF
+
+fi
+
+postmap /etc/postfix/transport
+
 #############
 #  start
 #############
