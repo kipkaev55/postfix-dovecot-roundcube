@@ -12,16 +12,48 @@ cp .env.example .env
 docker-compose build mailserver
 docker-compose up -d mailserver
 ```
-### If you need relay emails from your domain, add this in /etc/postfix/main.cf
-```
-...
-transport_maps = hash:/etc/postfix/transport
-```
-Then create /etc/postfix/transport
-```
-# cat /etc/postfix/transport
-noreply@domain.com smtp:[127.0.0.1]
-domain.com relay:[mx.yandex.ru]
-# postmap /etc/postfix/transport
-# postfix reload
+
+### Scheme of working
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as EMailSMTPClient (Monolith)
+    participant M as MailServer (Postfix+Dovecot)
+    participant S as SMTP (Postfix)
+    participant D as MAILER-DAEMON
+    participant P as POP/IMAP (Dovecot)
+    participant Y as Relay Yandex
+    participant NS as NS-server
+    participant MX as MX-server
+
+    C->>+M: { to: user@domain.name, from: noreply@mydomain.ltd, bcc: masha@mydomain.ltd }
+    M->>+S: { to: user@domain.name, from: noreply@mydomain.ltd, bcc: masha@mydomain.ltd }
+    S->>-M: received
+    M->>-C: received
+    alt if to === noreply@mydomain.ltd
+      S->>+P: { to: user@domain.name, from: noreply@mydomain.ltd, bcc: masha@mydomain.ltd }
+      P-->>-S: status=sent (delivered via dovecot service)
+    else if to === *@mydomain.ltd
+      S->>+Y: *@mydomain.ltd relay:[mx.yandex.ru]
+      alt success
+          Y-->>-S: status=sent (250 OK)
+      else fail
+          Y--xM: status=deferred (450 4.2.1 The recipient has exceeded message rate limit)
+          M->>D: { to: noreply@mydomain.ltd, from: MAILER-DAEMON@smtp }
+          D->>P: { to: noreply@mydomain.ltd, from: MAILER-DAEMON@smtp }
+      end
+    else
+      S->>+NS: mx for domain.name
+      NS-->>-S: mx.domain.name
+      S->>+MX: *@domain.name relay:[mx.domain.name]
+      alt success
+          MX-->>-S: status=sent (250 OK)
+      else fail
+          MX--xM: status=deferred (450 4.2.1 The recipient has exceeded message rate limit)
+          M->>D: { to: noreply@mydomain.ltd, from: MAILER-DAEMON@smtp }
+          D->>P: { to: noreply@mydomain.ltd, from: MAILER-DAEMON@smtp }
+      end
+    end
+
 ```

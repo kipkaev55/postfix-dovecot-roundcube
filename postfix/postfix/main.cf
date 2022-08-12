@@ -174,3 +174,6 @@ dovecot_destination_recipient_limit = 1
 #header_checks = regexp:/etc/postfix/header_checks
 # getting rid of x-original-to
 enable_original_recipient = no
+default_destination_concurrency_limit = 100
+local_destination_concurrency_limit = 100
+default_destination_rate_delay = 2s

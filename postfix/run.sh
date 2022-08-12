@@ -116,17 +116,22 @@ sed -i -- "s/\$DOMAINNAME/$DOMAINNAME/g" /etc/dovecot/dovecot.conf
 
 postconf -e transport_maps=hash:/etc/postfix/transport
 postconf -e anvil_status_update_time=7200s
+postconf -e default_destination_rate_delay=2s
+postconf -e default_destination_concurrency_limit=20
+postconf -e local_destination_concurrency_limit=20
 
 if [ ! -z "$RELAY" ]; then
     #############
     #  Fix Other Mail Service conflict due to domain's recipients
     #############
-    cat >> /etc/postfix/transport <<EOF
+    cat > /etc/postfix/transport <<EOF
+noreply@$DOMAINNAME dovecot
 $DOMAINNAME relay:[$RELAY]
 EOF
 
 fi
 
+postconf -e smtpd_reject_unlisted_recipient=no
 postmap /etc/postfix/transport
 
 #############
