@@ -7,8 +7,8 @@ chmod 775 /var/log/
 mkdir -p /var/log/apache2 /var/log/mysql
 if [ ! -d "/var/lib/mysql/mysql" ]; then /usr/bin/mysql_install_db;fi
 /etc/init.d/mysql start;
-if [ ! -d "/var/lib/mysql/mail" ]; 
-then 
+if [ ! -d "/var/lib/mysql/mail" ];
+then
     PSSW=`doveadm pw -s MD5-CRYPT -p $ADMIN_PASSWD | sed 's/{MD5-CRYPT}//'`
     echo "sed -i -- 's/\$HOSTNAME/$HOSTNAME/g' /var/www/html/postfixadmin/config.inc.php"
     sed -i -- "s/\$HOSTNAME/$HOSTNAME/g" /var/www/html/postfixadmin/config.inc.php
@@ -60,7 +60,17 @@ if [[ ! -z "$(find /etc/opendkim/domainkeys -iname *.private)" ]]; then
     postconf -e smtpd_milters=inet:localhost:12301
     postconf -e non_smtpd_milters=inet:localhost:12301
 
-    cat >> /etc/opendkim.conf <<EOF
+    OPENDKIM_CONF_FILE=/etc/opendkim.conf
+    OPENDKIM_CONF_ORIG=/etc/opendkim.conf.orig
+    if [ -f "$OPENDKIM_CONF_ORIG" ]; then
+        # exists
+        cat $OPENDKIM_CONF_ORIG > $OPENDKIM_CONF_FILE
+    else
+        # not exists
+        \cp $OPENDKIM_CONF_FILE $OPENDKIM_CONF_ORIG
+    fi
+
+    cat >> $OPENDKIM_CONF_FILE <<EOF
 AutoRestart             Yes
 AutoRestartRate         10/1h
 UMask                   002
@@ -84,25 +94,43 @@ UserID                  opendkim:opendkim
 Socket                  inet:12301@localhost
 EOF
 
-    cat >> /etc/default/opendkim <<EOF
-SOCKET="inet:12301@localhost"
-EOF
+    DEFAULT_OPENDKIM_FILE=/etc/default/opendkim
+    SOCKET='SOCKET="inet:12301@localhost"'
+    grep -qxF $SOCKET $DEFAULT_OPENDKIM_FILE || echo $SOCKET >> $DEFAULT_OPENDKIM_FILE
 
-    cat >> /etc/opendkim/TrustedHosts <<EOF
+    TRUSTED_HOSTS_FILE=/etc/opendkim/TrustedHosts
+    cat > $TRUSTED_HOSTS_FILE <<EOF
 127.0.0.1
 localhost
 $NETWORK
 
-*.$HOSTNAME.$DOMAINNAME
+$DOMAINNAME
+*.$DOMAINNAME
 EOF
 
-    cat >> /etc/opendkim/KeyTable <<EOF
-$HOSTNAME._domainkey.$DOMAINNAME $DOMAINNAME:$HOSTNAME.$DOMAINNAME:$(find /etc/opendkim/domainkeys -iname *.private)
-EOF
+    KEY_TABLE_FILE=/etc/opendkim/KeyTable
+    SIGNING_TABLE_FILE=/etc/opendkim/SigningTable
 
-    cat >> /etc/opendkim/SigningTable <<EOF
-$DOMAINNAME $HOSTNAME._domainkey.$DOMAINNAME
-EOF
+    for keyFile in $(find /etc/opendkim/domainkeys -iname \*.private); do
+        if [[ $keyFile =~ "$HOSTNAME.$DOMAINNAME" ]]; then
+            DOMAINKEY="$HOSTNAME._domainkey.$DOMAINNAME $DOMAINNAME:$HOSTNAME.$DOMAINNAME:$keyFile"
+            grep -qxF "$DOMAINKEY" $KEY_TABLE_FILE || echo "$DOMAINKEY" >> $KEY_TABLE_FILE
+
+            SIGNKEY="$DOMAINNAME $HOSTNAME._domainkey.$DOMAINNAME"
+            grep -qxF "$SIGNKEY" $SIGNING_TABLE_FILE || echo "$SIGNKEY" >> $SIGNING_TABLE_FILE
+        else
+            KEY_FILENAME=${keyFile#*domainkeys/}
+            KEY_DOMAIN=${KEY_FILENAME%.private*}
+            KEY_HOSTNAME=${KEY_DOMAIN%%.*}
+            KEY_PARENT_DOMAIN=${KEY_DOMAIN#*.}
+
+            DOMAINKEY="$KEY_HOSTNAME._domainkey.$KEY_PARENT_DOMAIN $KEY_PARENT_DOMAIN:$KEY_DOMAIN:$keyFile"
+            grep -qxF "$DOMAINKEY" $KEY_TABLE_FILE || echo "$DOMAINKEY" >> $KEY_TABLE_FILE
+
+            SIGNKEY="$KEY_PARENT_DOMAIN $KEY_HOSTNAME._domainkey.$KEY_PARENT_DOMAIN"
+            grep -qxF "$SIGNKEY" $SIGNING_TABLE_FILE || echo "$SIGNKEY" >> $SIGNING_TABLE_FILE
+        fi
+    done
 
     chown opendkim:opendkim $(find /etc/opendkim/domainkeys -iname *.private)
     chmod 400 $(find /etc/opendkim/domainkeys -iname *.private)
